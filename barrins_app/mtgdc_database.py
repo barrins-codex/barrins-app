@@ -1,4 +1,5 @@
 """Module de gestion de base de données."""
+
 from pathlib import Path
 
 import sqlalchemy
@@ -39,6 +40,7 @@ decks_commanders = Table(
 
 class Cartes(Base):
     """Tables cartes."""
+
     __tablename__ = "cartes"
 
     id = Column(String, primary_key=True)
@@ -61,6 +63,7 @@ class Cartes(Base):
 
 class Decks(Base):
     """Tables decks."""
+
     __tablename__ = "decks"
 
     id = Column(Integer, primary_key=True)
@@ -77,6 +80,7 @@ class Decks(Base):
 
 class Sets(Base):
     """Tables sets."""
+
     __tablename__ = "sets"
 
     code = Column(String, primary_key=True)
@@ -86,6 +90,7 @@ class Sets(Base):
 
 class Tournois(Base):
     """Tables tournois."""
+
     __tablename__ = "tournois"
 
     id = Column(Integer, primary_key=True)
