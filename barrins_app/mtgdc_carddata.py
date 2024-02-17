@@ -42,11 +42,11 @@ class AllSets(MTGJSON):
     def __init__(self) -> None:
         self.target = "https://mtgjson.com/api/v5/SetList.json.gz"
         self.path = Path(__file__).parent / "AllSets.json.gz"
+
         if not self.is_up_to_date:
             self._download()
-
-        self.data = json.load(gzip.open(self.path))["data"]
-        self._upgrade()
+            self.data = json.load(gzip.open(self.path))["data"]
+            self._upgrade()
 
     def _upgrade(self):
         """Mise à jour de la base."""
@@ -80,11 +80,11 @@ class AllCards(MTGJSON):
     def __init__(self) -> None:
         self.target = "https://mtgjson.com/api/v5/AtomicCards.json.gz"
         self.path = Path(__file__).parent / "AtomicCards.json.gz"
+
         if not self.is_up_to_date:
             self._download()
-
-        self.data = json.load(gzip.open(self.path))["data"]
-        self._upgrade()
+            self.data = json.load(gzip.open(self.path))["data"]
+            self._upgrade()
 
     def _upgrade(self):
         """Mise à jour de la base."""
