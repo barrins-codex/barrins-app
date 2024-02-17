@@ -318,8 +318,7 @@ def update_label(label):
     session = init_database()
     last = (
         session.query(Tournois)
-        .order_by(Tournois.date.desc())
-        .order_by(Tournois.players.desc())
+        .order_by(Tournois.id.desc())
         .first()
     )
 
