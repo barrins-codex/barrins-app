@@ -7,9 +7,8 @@ from threading import Lock, Thread
 
 import requests
 from bs4 import BeautifulSoup
-from mtgdc_database import Cartes, Decks, Tournois, init_database, stmt_set_deck_carte
-
 from mtgdc_carddata import DBCards
+from mtgdc_database import Cartes, Decks, Tournois, init_database, stmt_set_deck_carte
 
 CARDS = DBCards()
 
@@ -329,7 +328,7 @@ def scrap_mtgtop8(span: int = 100, **kw):
     def execute_scrap(tournament_id: int, label):
         tournament = MTGTournoi(f"https://mtgtop8.com/event?e={tournament_id}")
 
-        if tournament.is_commander:
+        if tournament.is_commander and tournament.date > datetime(1993, 8, 5).date():
             session = init_database()
 
             tournament_data = {
@@ -342,7 +341,6 @@ def scrap_mtgtop8(span: int = 100, **kw):
             new_tournament = Tournois(**tournament_data)
             session.add(new_tournament)
 
-            unknown_card = False
             for deck in tournament.decks:
                 deck_data = {
                     "id": deck["id"],
@@ -356,16 +354,12 @@ def scrap_mtgtop8(span: int = 100, **kw):
                 card_names = [
                     line.split(" ", maxsplit=1)[1] for line in deck["decklist"]
                 ]
-                if (
-                    "Unknown Card" in card_names or "Unknown Card" in deck["commander"]
-                ) and not unknown_card:
-                    unknown_card = True
+                if "Unknown Card" in card_names.extend(deck["commander"]):
                     session.rollback()
+                    session.close()
                     return False
 
                 for card_name in deck["commander"]:
-                    if "Unknown Card" in card_name and not unknown_card:
-                        unknown_card = True
                     card = session.query(Cartes).filter_by(name=card_name).first()
                     new_deck.commanders.append(card)
 
