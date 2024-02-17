@@ -1,4 +1,4 @@
-"""Refonte du module mtgdc_scrapper adaté à la mise en base."""
+"""Module de scrap de MTGTOP8 et de mise en base des tournois."""
 
 import math
 import re
