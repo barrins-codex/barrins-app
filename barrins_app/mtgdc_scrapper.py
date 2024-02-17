@@ -316,11 +316,7 @@ def last_tournament_scrapped():
 def update_label(label):
     """Mise à jour du label de résumé d'extraction."""
     session = init_database()
-    last = (
-        session.query(Tournois)
-        .order_by(Tournois.id.desc())
-        .first()
-    )
+    last = session.query(Tournois).order_by(Tournois.id.desc()).first()
 
     label_text = f'Last added: "{last.name}", {last.players} players, on {last.date}'
     label.config(text=label_text)
