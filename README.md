@@ -1,7 +1,7 @@
 # barrins-app
 
 ## Onglets
-* `tab_tournois.py` est l'onglet qui gère le scrapping de MTGTOP8.
+* `tab_tournois` est l'onglet qui gère le scrapping de MTGTOP8.
 
 ## Modules
 * `mtgdc_carddata` permet de s'assurer que les données en base sont à jour ;
