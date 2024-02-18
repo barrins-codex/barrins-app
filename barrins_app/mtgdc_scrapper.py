@@ -92,6 +92,7 @@ class MTGDeck(Soupe):
                 ]
 
             # Make sure every card is properly typed
+            print(self.data["sideboard"])
             for idx, carte in enumerate(self.data["sideboard"]):
                 self.data["sideboard"][idx] = CARDS.get(carte)["name"]
 
@@ -317,7 +318,11 @@ def update_label(label):
     session = init_database()
     last = session.query(Tournois).order_by(Tournois.id.desc()).first()
 
-    label_text = f'Last added: "{last.name}", {last.players} players, on {last.date}'
+    label_text = (
+        f'Last added: "{last.name}", {last.players} players, on {last.date}'
+        if last
+        else "No tournament in database."
+    )
     label.config(text=label_text)
     session.close()
 
@@ -354,7 +359,7 @@ def scrap_mtgtop8(span: int = 100, **kw):
                 card_names = [
                     line.split(" ", maxsplit=1)[1] for line in deck["decklist"]
                 ]
-                if "Unknown Card" in card_names.extend(deck["commander"]):
+                if "Unknown Card" in (card_names + deck["commander"]):
                     session.rollback()
                     session.close()
                     return False
