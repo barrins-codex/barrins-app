@@ -312,20 +312,6 @@ def last_tournament_scrapped():
     return max([tournament.id for tournament in tournaments])
 
 
-def update_label(label):
-    """Mise à jour du label de résumé d'extraction."""
-    session = init_database()
-    last = session.query(Tournois).order_by(Tournois.id.desc()).first()
-
-    label_text = (
-        f'Last added: "{last.name}", {last.players} players, on {last.date}'
-        if last
-        else "No tournament in database."
-    )
-    label.config(text=label_text)
-    session.close()
-
-
 def scrap_mtgtop8(span: int = 100, **kw):
     """Fonction asynchrone pour le scrapping de MTGTOP8."""
 
@@ -379,7 +365,10 @@ def scrap_mtgtop8(span: int = 100, **kw):
             session.commit()
             session.close()
 
-            update_label(label)
+            if label:
+                #update_label(label)
+                label.master.update_label()
+                label.master.parent.f_display.insert_tournament()
 
     tournament_id = last_tournament_scrapped()
     label = kw.get("label", None)
