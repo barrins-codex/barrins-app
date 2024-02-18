@@ -2,7 +2,7 @@
 
 import math
 import re
-from datetime import datetime
+from datetime import datetime, date
 from threading import Lock, Thread
 
 import requests
@@ -318,7 +318,8 @@ def scrap_mtgtop8(span: int = 100, **kw):
     def execute_scrap(tournament_id: int, label):
         tournament = MTGTournoi(f"https://mtgtop8.com/event?e={tournament_id}")
 
-        if tournament.is_commander and tournament.date > datetime(1993, 8, 5).date():
+        tournament_date = tournament.date if type(tournament.date) == date else tournament.date.date()
+        if tournament.is_commander and tournament_date > datetime(1993, 8, 5).date():
             session = init_database()
 
             tournament_data = {
@@ -326,7 +327,7 @@ def scrap_mtgtop8(span: int = 100, **kw):
                 "name": tournament.name,
                 "place": tournament.place,
                 "players": tournament.players,
-                "date": tournament.date,
+                "date": tournament_date,
             }
             new_tournament = Tournois(**tournament_data)
             session.add(new_tournament)
