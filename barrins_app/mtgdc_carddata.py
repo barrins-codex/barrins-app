@@ -221,7 +221,7 @@ class DBCards:
             "creature" not in card["type"].lower()
             and "can be your commander" not in card["text"].lower()
         ):
-            return False
+            return card["name"].startswith("Grist, the Hunger Tide")
 
         return True
 
