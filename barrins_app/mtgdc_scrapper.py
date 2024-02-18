@@ -2,7 +2,7 @@
 
 import math
 import re
-from datetime import datetime, date
+from datetime import date, datetime
 from threading import Lock, Thread
 
 import requests
@@ -11,7 +11,6 @@ from mtgdc_carddata import DBCards
 from mtgdc_database import Cartes, Decks, Tournois, init_database, stmt_set_deck_carte
 
 CARDS = DBCards()
-
 HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET",
@@ -315,10 +314,14 @@ def last_tournament_scrapped():
 def scrap_mtgtop8(span: int = 100, **kw):
     """Fonction asynchrone pour le scrapping de MTGTOP8."""
 
+    CARDS.helpers()  # Refresh the helpers
+
     def execute_scrap(tournament_id: int, label):
         tournament = MTGTournoi(f"https://mtgtop8.com/event?e={tournament_id}")
 
-        tournament_date = tournament.date if type(tournament.date) == date else tournament.date.date()
+        tournament_date = (
+            tournament.date if type(tournament.date) == date else tournament.date.date()
+        )
         if tournament.is_commander and tournament_date > datetime(1993, 8, 5).date():
             session = init_database()
 
