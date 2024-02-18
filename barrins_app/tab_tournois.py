@@ -3,9 +3,11 @@
 import threading
 from tkinter import ttk
 
-from mtgdc_carddata import AllCards, AllSets
+from mtgdc_carddata import DBCards, init_cards, init_sets
 from mtgdc_database import Decks, Tournois, init_database
-from mtgdc_scrapper import last_tournament_scrapped, scrap_mtgtop8, update_label
+from mtgdc_scrapper import last_tournament_scrapped, scrap_mtgtop8
+
+CARDS = DBCards()
 
 
 class TournoisTab(ttk.Frame):
@@ -29,6 +31,7 @@ class ExtractMtgTop8(ttk.Labelframe):
 
     def __init__(self, parent):
         super().__init__(parent, text="Données MTGTOP8")
+        self.parent = parent
 
         # Configuration de la grille
         self.grid(row=0, column=0, columnspan=6, sticky="nsew", padx=5, pady=5)
@@ -45,15 +48,20 @@ class ExtractMtgTop8(ttk.Labelframe):
         # Dernier tournoi
         self.last_tournament_label = ttk.Label(self, text="")
         self.last_tournament_label.grid(row=0, column=1, sticky="ew", padx=20)
-        update_label(self.last_tournament_label)
+        self.update_label()
 
     def start_extraction(self):
         """Action du bouton."""
         self.extract_button.configure(state="disabled")
 
         # Contrôle que les data sont à jour
-        AllSets()
-        AllCards()
+        thread = threading.Thread(target=init_sets)
+        thread.start()
+        thread.join()
+
+        thread = threading.Thread(target=init_cards)
+        thread.start()
+        thread.join()
 
         # Extraction MtgTop8
         thread = threading.Thread(target=self.mtgtop8_extraction)
@@ -72,6 +80,20 @@ class ExtractMtgTop8(ttk.Labelframe):
 
         return
 
+    def update_label(self):
+        """Mise à jour du label de résumé d'extraction."""
+        session = init_database()
+        last = session.query(Tournois).order_by(Tournois.id.desc()).first()
+
+        if last:
+            name = last.name if len(last.name) < 25 else last.name[:22] + "..."
+            label_text = f'Last added: "{name}", {last.players} players, on {last.date}'
+        else:
+            label_text = "No tournament in database."
+
+        self.last_tournament_label.config(text=label_text)
+        session.close()
+
 
 class DisplayMtgTop8(ttk.Labelframe):
     """Affichage des tournois et decks en base de données."""
@@ -85,25 +107,20 @@ class DisplayMtgTop8(ttk.Labelframe):
         )
 
         # Ajout du tableau
-        self.tableau = ttk.Treeview(
-            self, columns=["col0", "col1", "col2", "col3"], show="headings"
-        )
+        self.tableau = ttk.Treeview(self, columns=["col1", "col2", "col3"])
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.tableau.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        self.tableau.bind("<Double-1>", self.on_double_click)
-
         # Mise en page des colonnes
         base_width = 700
-        self.tableau.column("col0", width=int(base_width * 1 / 27))
+        self.tableau.column("#0", width=int(base_width * 1 / 27))
         self.tableau.column("col1", width=int(base_width * 15 / 27))
         self.tableau.column("col2", width=int(base_width * 8 / 27))
         self.tableau.column("col3", width=int(base_width * 3 / 27))
 
         # Nom des colonnes
-        self.sorting_states = {col: True for col in ["col0", "col1", "col2", "col3"]}
-        self.tableau.heading("col0", text="", command=lambda: self.sort_column("col0"))
+        self.sorting_states = {col: True for col in ["col1", "col2", "col3"]}
         self.tableau.heading(
             "col1", text="Date", command=lambda: self.sort_column("col1")
         )
@@ -137,57 +154,49 @@ class DisplayMtgTop8(ttk.Labelframe):
             self.tableau.delete(row)
 
         session = init_database()
-        tournois = session.query(Tournois).order_by(Tournois.date.desc()).all()
+
+        # Ajout des tournois
+        tournois = session.query(Tournois).order_by(Tournois.id.desc()).all()
         for tournoi in tournois:
             self.tableau.insert(
                 "",
                 "end",
-                values=("➕", tournoi.name, tournoi.date, tournoi.players),
+                values=(tournoi.name, tournoi.date, tournoi.players),
                 iid=tournoi.id,
                 tags=(tournoi.id,),
             )
 
-    def load_decks(self, id_tournoi):
-        """Récupération et affichage des decks."""
+            self.insert_decks(tournoi.id)
+
+    def insert_tournament(self):
+        """Insertion du dernier tournoi scrappé."""
         session = init_database()
-        decks = (
-            session.query(Decks)
-            .filter_by(tournoi_id=id_tournoi)
-            .order_by(Decks.rank.asc())
-            .all()
+        tournoi = session.query(Tournois).order_by(Tournois.id.desc()).first()
+
+        self.tableau.insert(
+            "",
+            0,
+            values=(tournoi.name, tournoi.date, tournoi.players),
+            iid=tournoi.id,
+            tags=(tournoi.id,),
         )
+
+        self.insert_decks(tournoi.id)
+
+    def insert_decks(self, id_tournoi):
+        session = init_database()
+        decks = session.query(Decks).filter_by(tournoi_id=id_tournoi).all()
         for deck in decks:
-            commanders = " + ".join([carte.name for carte in deck.commanders])
-            self.tableau.insert(
-                id_tournoi,
-                "end",
-                values=("↳", deck.player, commanders, ""),
-                tags=(id_tournoi,),
+            commanders = " + ".join(
+                [
+                    carte.name
+                    for carte in deck.commanders
+                    if CARDS.has_leadership(carte.name)
+                ]
             )
-
-    def on_double_click(self, event):
-        """Drill up et down tournois/decks."""
-        item = self.tableau.selection()[0]
-        parent = self.tableau.parent(item)
-
-        if parent == "":
-            tournoi_id = self.tableau.item(item, "tags")[0]
-            self.remove_children(item)
-            self.load_decks(tournoi_id)
-
-            values = list(self.tableau.item(item, "values"))
-            values[0] = "➖" if values[0] == "➕" else "➕"
-            self.tableau.item(item, values=values)
-
-        else:
-            self.remove_children(parent)
-
-            values = list(self.tableau.item(parent, "values"))
-            values[0] = "➕" if values[0] == "➖" else "➖"
-            self.tableau.item(parent, values=values)
-
-    def remove_children(self, parent):
-        """Retrait des enfants du tableau."""
-        children = self.tableau.get_children(item=parent)
-        for child in children:
-            self.tableau.delete(child)
+            self.tableau.insert(
+                deck.tournoi_id,
+                "end",
+                values=(deck.player, commanders, ""),
+                tags=(deck.tournoi_id,),
+            )
