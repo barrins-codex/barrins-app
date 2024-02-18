@@ -366,7 +366,7 @@ def scrap_mtgtop8(span: int = 100, **kw):
             session.close()
 
             if label:
-                #update_label(label)
+                # update_label(label)
                 label.master.update_label()
                 label.master.parent.f_display.insert_tournament()
 
