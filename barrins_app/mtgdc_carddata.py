@@ -151,6 +151,12 @@ class DBCards:
     """Classe qui gère les requêtes à la base concernant les cartes."""
 
     def __init__(self) -> None:
+        self.helper = {}
+        self.clean_keys = {}
+        self.helpers()
+
+    def helpers(self) -> None:
+        """Procédure qui permet de recréer les helpers après un update de la base de données."""
         session = init_database()
         cards = session.query(Cartes).all()
 
