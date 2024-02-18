@@ -1,7 +1,7 @@
 """Onglet pour l'extraction et l'affichage des tournois depuis MTGTOPO8."""
 
 import threading
-from tkinter import messagebox, ttk
+from tkinter import ttk
 
 from mtgdc_carddata import DBCards, init_cards, init_sets
 from mtgdc_database import Decks, Tournois, init_database
