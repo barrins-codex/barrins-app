@@ -92,7 +92,6 @@ class MTGDeck(Soupe):
                 ]
 
             # Make sure every card is properly typed
-            print(self.data["sideboard"])
             for idx, carte in enumerate(self.data["sideboard"]):
                 self.data["sideboard"][idx] = CARDS.get(carte)["name"]
 
