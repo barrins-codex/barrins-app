@@ -53,7 +53,8 @@ class ExtractMtgTop8(ttk.Labelframe):
     def start_extraction(self):
         """Action du bouton."""
         self.extract_button.configure(state="disabled")
-
+        self.extract_button.configure(text="Scrapping...")
+        
         # Contrôle que les data sont à jour
         thread = threading.Thread(target=init_sets)
         thread.start()
