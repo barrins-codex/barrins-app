@@ -1,7 +1,7 @@
 """Onglet pour l'extraction et l'affichage des tournois depuis MTGTOPO8."""
 
 import threading
-from tkinter import ttk
+from tkinter import messagebox, ttk
 
 from mtgdc_carddata import DBCards, init_cards, init_sets
 from mtgdc_database import Decks, Tournois, init_database
@@ -37,7 +37,8 @@ class ExtractMtgTop8(ttk.Labelframe):
         self.grid(row=0, column=0, columnspan=6, sticky="nsew", padx=5, pady=5)
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=5)
-        self.rowconfigure(0, weight=1)
+        self.rowconfigure(0, weight=5)
+        self.rowconfigure(1, weight=1)
 
         # Ajout apparence
         self.extract_button = ttk.Button(
@@ -50,21 +51,35 @@ class ExtractMtgTop8(ttk.Labelframe):
         self.last_tournament_label.grid(row=0, column=1, sticky="ew", padx=20)
         self.update_label()
 
+        # Message sur freeze pendant DB update
+        self.warning_message = ttk.Label(
+            self,
+            text="This software updates its MTG database once every week. During this update, it may freeze due to heavy payload.",
+            font=("Arial", 10, "italic"),
+            anchor="center",
+        )
+        self.warning_message.grid(row=1, column=0, columnspan=2, sticky="ew", padx=20)
+
     def start_extraction(self):
         """Action du bouton."""
         self.extract_button.configure(state="disabled")
-        self.extract_button.configure(text="Scrapping...")
-        
-        # Contrôle que les data sont à jour
-        thread = threading.Thread(target=init_sets)
-        thread.start()
-        thread.join()
 
-        thread = threading.Thread(target=init_cards)
-        thread.start()
-        thread.join()
+        # Contrôle que les data sont à jour
+        self.extract_button.configure(text="Updating MTG Data")
+        threads = [
+            threading.Thread(target=init_sets),
+            threading.Thread(target=init_cards),
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        self.extract_button.configure(text="MTG Data Updated")
+
+        CARDS.helpers()
 
         # Extraction MtgTop8
+        self.extract_button.configure(text="Scrapping...")
         thread = threading.Thread(target=self.mtgtop8_extraction)
         thread.start()
 
