@@ -200,18 +200,21 @@ class DBCards:
 
         return {}
 
-    def has_been_commander(self, card) -> bool:
+    def has_leadership(self, card) -> bool:
         """Méthode pour savoir si la carte aurait pu être commander."""
         if type(card) == str:
-            card = self.get_card_by_name(card)
+            card = self.get(card)
 
         if card["name"].startswith("A-"):
             return False
 
-        if "leadershipSkills" not in card.keys():
+        if "legendary" not in card["type"].lower():
             return False
 
-        if not card["leadershipSkills"]["commander"]:
+        if (
+            "creature" not in card["type"].lower()
+            and "can be your commander" not in card["text"].lower()
+        ):
             return False
 
         return True
@@ -219,9 +222,9 @@ class DBCards:
     def is_commander(self, card) -> bool:
         """Méthode pour savoir si la carte est actuellement commander."""
         if type(card) == str:
-            card = self.get_card_by_name(card)
+            card = self.get(card)
 
-        if not self.has_been_commander(card):
+        if not self.has_leadership(card):
             return False
 
         legalities = card["legalities"]
