@@ -138,10 +138,10 @@ class DisplayMtgTop8(ttk.Labelframe):
         # Nom des colonnes
         self.sorting_states = {col: True for col in ["col1", "col2", "col3"]}
         self.tableau.heading(
-            "col1", text="Date", command=lambda: self.sort_column("col1")
+            "col1", text="Name", command=lambda: self.sort_column("col1")
         )
         self.tableau.heading(
-            "col2", text="Name", command=lambda: self.sort_column("col2")
+            "col2", text="Date", command=lambda: self.sort_column("col2")
         )
         self.tableau.heading(
             "col3", text="Size", command=lambda: self.sort_column("col3")
