@@ -52,7 +52,7 @@ class MTGDeck(Soupe):
         # C'est un appel "à blanc" du deck car j'ai observé que
         # si la page de deck n'était pas visitée au préalable,
         # l'exportation de la decklist ne fonctionnait pas correctement
-        tmp = Soupe(f"https://mtgtop8.com/event?e=1&d={deck_id}").soup
+        Soupe(f"https://mtgtop8.com/event?e=1&d={deck_id}").soup
 
         super().__init__(f"https://mtgtop8.com/mtgo?d={deck_id}")
         self.id = deck_id
@@ -341,7 +341,9 @@ def scrap_mtgtop8(span: int = 100, label=None, display=None):
         tournament = MTGTournoi(f"https://mtgtop8.com/event?e={tournament_id}")
 
         tournament_date = (
-            tournament.date if type(tournament.date) == date else tournament.date.date()
+            tournament.date
+            if isinstance(tournament.date, date)
+            else tournament.date.date()
         )
         if tournament.is_commander and tournament_date > datetime(1993, 8, 5).date():
             session = init_database()
