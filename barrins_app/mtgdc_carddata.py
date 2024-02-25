@@ -50,6 +50,7 @@ class AllSets(MTGJSON):
 
     def _upgrade(self):
         """Mise à jour de la base."""
+
         session = init_database()
 
         for set_data in self.data:
@@ -88,6 +89,7 @@ class AllCards(MTGJSON):
 
     def _upgrade(self):
         """Mise à jour de la base."""
+
         session = init_database()
 
         for card_name in self.data.keys():
@@ -157,6 +159,7 @@ class DBCards:
 
     def helpers(self) -> None:
         """Procédure qui permet de recréer les helpers après un update de la base de données."""
+
         session = init_database()
         cards = session.query(Cartes).all()
 
@@ -181,11 +184,13 @@ class DBCards:
 
     def _remove_accents(self, string: str) -> str:
         """Méthode statique qui retourne une chaine contenant uniquement des lettres."""
+
         string = string.replace("&amp;", "")
         return "".join(char for char in unidecode(string) if char.isalpha()).lower()
 
     def get(self, card_name: str) -> dict:
         """Récupération et contrôle des clés utilisées."""
+
         if card_name == "Unknown Card":
             return {"name": "Unknown Card"}
 
@@ -208,6 +213,7 @@ class DBCards:
 
     def has_leadership(self, card) -> bool:
         """Méthode pour savoir si la carte aurait pu être commander."""
+
         if type(card) == str:
             card = self.get(card)
 
@@ -227,6 +233,7 @@ class DBCards:
 
     def is_commander(self, card) -> bool:
         """Méthode pour savoir si la carte est actuellement commander."""
+
         if type(card) == str:
             card = self.get(card)
 
@@ -239,9 +246,17 @@ class DBCards:
 
         return True
 
+    def command_zone_to_str(self, cards: list) -> str:
+        """Méthode qui retourne la command zone sous forme de string."""
+
+        return " + ".join(
+            [carte.name for carte in cards if self.has_leadership(carte.name)]
+        )
+
 
 def oldest_set(set_codes):
     """Fonction pour vérifier quel est le premier set d'impression d'une carte."""
+
     session = init_database()
     sets = session.query(Sets).filter(Sets.code.in_(set_codes)).all()
 
@@ -261,11 +276,13 @@ def oldest_set(set_codes):
 
 def init_sets():
     """Initialisation de la table de sets."""
+
     sets = AllSets()
     return sets
 
 
 def init_cards():
     """Initialisation de la table de cartes."""
+
     cards = AllCards()
     return cards
