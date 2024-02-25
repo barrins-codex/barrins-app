@@ -71,7 +71,9 @@ class AllSets(MTGJSON):
             except sqlalchemy.exc.IntegrityError:
                 session.rollback()
                 print(
-                    f"Erreur : Impossible d'ajouter {set_data['code']} à la base de données."
+                    "Erreur : Impossible d'ajouter",
+                    set_data["code"],
+                    "à la base de données.",
                 )
 
 
@@ -145,7 +147,9 @@ class AllCards(MTGJSON):
             except IntegrityError:
                 session.rollback()
                 print(
-                    f"Erreur : Impossible d'ajouter {card_data['name']} à la base de données."
+                    "Erreur : Impossible d'ajouter",
+                    card_data["name"],
+                    "à la base de données.",
                 )
 
 
@@ -158,7 +162,7 @@ class DBCards:
         self.helpers()
 
     def helpers(self) -> None:
-        """Procédure qui permet de recréer les helpers après un update de la base de données."""
+        """Procédure qui permet de recréer les helpers après un update."""
 
         session = init_database()
         cards = session.query(Cartes).all()
@@ -214,7 +218,7 @@ class DBCards:
     def has_leadership(self, card) -> bool:
         """Méthode pour savoir si la carte aurait pu être commander."""
 
-        if type(card) == str:
+        if isinstance(card, str):
             card = self.get(card)
 
         if card["name"].startswith("A-"):
@@ -234,7 +238,7 @@ class DBCards:
     def is_commander(self, card) -> bool:
         """Méthode pour savoir si la carte est actuellement commander."""
 
-        if type(card) == str:
+        if isinstance(card, str):
             card = self.get(card)
 
         if not self.has_leadership(card):
