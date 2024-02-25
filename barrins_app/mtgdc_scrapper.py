@@ -311,12 +311,12 @@ def last_tournament_scrapped():
     return max([tournament.id for tournament in tournaments])
 
 
-def scrap_mtgtop8(span: int = 100, **kw):
+def scrap_mtgtop8(span: int = 100, label=None, display=None):
     """Fonction asynchrone pour le scrapping de MTGTOP8."""
 
     CARDS.helpers()  # Refresh the helpers
 
-    def execute_scrap(tournament_id: int, label):
+    def execute_scrap(tournament_id: int, label, display):
         tournament = MTGTournoi(f"https://mtgtop8.com/event?e={tournament_id}")
 
         tournament_date = (
@@ -370,16 +370,17 @@ def scrap_mtgtop8(span: int = 100, **kw):
             session.close()
 
             if label:
-                label.master.update_label()
-                label.master.parent.f_display.insert_tournament()
+                label()
+            if display:
+                display()
 
     tournament_id = last_tournament_scrapped()
-    label = kw.get("label", None)
 
     for loop in range(math.ceil(span // 10)):
         threads = [
             Thread(
-                target=execute_scrap, args=((tournament_id + 1 + i + loop * 10), label)
+                target=execute_scrap,
+                args=((tournament_id + 1 + i + loop * 10), label, display),
             )
             for i in range(10)
         ]
