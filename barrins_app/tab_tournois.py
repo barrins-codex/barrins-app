@@ -25,6 +25,29 @@ class TournoisTab(ttk.Frame):
         self.f_extract = ExtractMtgTop8(self)
         self.f_display = DisplayMtgTop8(self)
 
+        # Exécution du chargement des decks lors de l'accès à l'onglet
+        parent.bind("<<NotebookTabChanged>>", self.on_tab_change)
+
+    def on_tab_change(self, event):
+        """Chargement des tournois et decks en base uniqment à l'accès à l'onglet."""
+        selected_tab = event.widget.select()
+        tab_name = event.widget.tab(selected_tab, "text")
+        if tab_name == "Tournois" and not self.f_display.loaded:
+            self.f_display.loaded = True
+            threading.Thread(target=self.f_display.load_data).start()
+
+    def mtgtop8_extraction(self):
+        """Boucle de scrapping."""
+        last_id = 0
+
+        while last_id < last_tournament_scrapped():
+            last_id = last_tournament_scrapped()
+            scrap_mtgtop8(
+                2000,
+                label=self.f_extract.update_label,
+                display=self.f_display.insert_tournament,
+            )
+
 
 class ExtractMtgTop8(ttk.Labelframe):
     """Scrapping de MTGTOP8."""
@@ -54,7 +77,10 @@ class ExtractMtgTop8(ttk.Labelframe):
         # Message sur freeze pendant DB update
         self.warning_message = ttk.Label(
             self,
-            text="This software updates its MTG database once every week. During this update, it may freeze due to heavy payload.",
+            text=(
+                "This software updates its MTG database once every week. "
+                + "During this update, it may freeze due to heavy payload."
+            ),
             font=("Arial", 10, "italic"),
             anchor="center",
         )
@@ -80,21 +106,7 @@ class ExtractMtgTop8(ttk.Labelframe):
 
         # Extraction MtgTop8
         self.extract_button.configure(text="Scrapping...")
-        thread = threading.Thread(target=self.mtgtop8_extraction)
-        thread.start()
-
-    def mtgtop8_extraction(self):
-        """Boucle de scrapping."""
-        last_id = 0
-        loops = 0
-
-        while last_id < last_tournament_scrapped():
-            last_id = last_tournament_scrapped()
-            loops += 1
-
-            scrap_mtgtop8(2000, label=self.last_tournament_label)
-
-        return
+        threading.Thread(target=self.parent.mtgtop8_extraction).start()
 
     def update_label(self):
         """Mise à jour du label de résumé d'extraction."""
@@ -116,6 +128,7 @@ class DisplayMtgTop8(ttk.Labelframe):
 
     def __init__(self, parent) -> None:
         super().__init__(parent, text="Decks en base de données")
+        self.loaded = False
 
         # Configuration de la grille
         self.grid(
@@ -131,8 +144,8 @@ class DisplayMtgTop8(ttk.Labelframe):
         # Mise en page des colonnes
         base_width = 700
         self.tableau.column("#0", width=int(base_width * 1 / 27))
-        self.tableau.column("col1", width=int(base_width * 15 / 27))
-        self.tableau.column("col2", width=int(base_width * 8 / 27))
+        self.tableau.column("col1", width=int(base_width * 13 / 27))
+        self.tableau.column("col2", width=int(base_width * 9 / 27))
         self.tableau.column("col3", width=int(base_width * 3 / 27))
 
         # Nom des colonnes
@@ -146,8 +159,6 @@ class DisplayMtgTop8(ttk.Labelframe):
         self.tableau.heading(
             "col3", text="Size", command=lambda: self.sort_column("col3")
         )
-
-        self.load_data()
 
     def sort_column(self, col):
         """Fonciton pour tri des colonnes."""
@@ -187,7 +198,7 @@ class DisplayMtgTop8(ttk.Labelframe):
     def insert_tournament(self):
         """Insertion du dernier tournoi scrappé."""
         session = init_database()
-        tournoi = session.query(Tournois).order_by(Tournois.id.desc()).first()
+        tournoi = session.query(Tournois).order_by(Tournois.date.desc()).first()
 
         self.tableau.insert(
             "",
@@ -200,19 +211,25 @@ class DisplayMtgTop8(ttk.Labelframe):
         self.insert_decks(tournoi.id)
 
     def insert_decks(self, id_tournoi):
+        """Insertion de l'ensemble des decks du tournoi."""
         session = init_database()
         decks = session.query(Decks).filter_by(tournoi_id=id_tournoi).all()
         for deck in decks:
-            commanders = " + ".join(
-                [
-                    carte.name
-                    for carte in deck.commanders
-                    if CARDS.has_leadership(carte.name)
-                ]
-            )
-            self.tableau.insert(
-                deck.tournoi_id,
-                "end",
-                values=(deck.player, commanders, ""),
-                tags=(deck.tournoi_id,),
-            )
+            self.insert_deck(deck)
+
+    def insert_deck(self, deck: Decks):
+        """Insertion d'un deck d'après ses données."""
+        commanders = " + ".join(
+            [
+                carte.name
+                for carte in deck.commanders
+                if CARDS.has_leadership(carte.name)
+            ]
+        )
+
+        self.tableau.insert(
+            deck.tournoi_id,
+            "end",
+            values=(deck.player, commanders, ""),
+            tags=(deck.tournoi_id,),
+        )
