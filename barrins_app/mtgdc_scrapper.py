@@ -30,7 +30,12 @@ class Soupe:
     def __init__(self, link: str) -> None:
         self.link = link
         self.soup = self.get_soup()
-        self.encoding = "iso-8859-1"
+
+    @property
+    def encoding(self):
+        """Propriété qui retourne l'encoding du site mtgtop8."""
+
+        return "iso-8859-1"
 
     def get_soup(self) -> BeautifulSoup:
         """Fonction qui récupère la page demandée."""
