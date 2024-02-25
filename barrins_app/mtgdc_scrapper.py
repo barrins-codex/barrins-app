@@ -2,11 +2,12 @@
 
 import math
 import re
+import threading
 from datetime import date, datetime
-from threading import Lock, Thread
 
 import requests
 from bs4 import BeautifulSoup
+from cls_thread import DaemonThread as Thread
 from mtgdc_carddata import DBCards
 from mtgdc_database import Cartes, Decks, Tournois, init_database, stmt_set_deck_carte
 
@@ -29,14 +30,11 @@ class Soupe:
     def __init__(self, link: str) -> None:
         self.link = link
         self.soup = self.get_soup()
-
-    @property
-    def encoding(self) -> str:
-        """Propriété contenant l'encoding de mtgtop8."""
-        return "iso-8859-1"
+        self.encoding = "iso-8859-1"
 
     def get_soup(self) -> BeautifulSoup:
         """Fonction qui récupère la page demandée."""
+
         req = requests.get(self.link, HEADERS, stream=True, timeout=5000)
         req.encoding = self.encoding
         return BeautifulSoup(req.content, "html.parser", from_encoding=self.encoding)
@@ -64,6 +62,7 @@ class MTGDeck(Soupe):
     @property
     def to_dict(self) -> dict:
         """Propriété pour gérer la représentation en dict de l'objet."""
+
         return {
             "id": self.id,
             "rank": self.rank,
@@ -75,11 +74,13 @@ class MTGDeck(Soupe):
     @property
     def decklist(self) -> str:
         """Propriété retournant la decklist."""
+
         return self.soup.prettify()
 
     @property
     def commander(self) -> list:
         """Propriété qui retourne le sideboard."""
+
         if len(self.data["sideboard"]) == 0:
             if "Sideboard" not in self.decklist:
                 self.data["sideboard"] = ["Unknown Card"]
@@ -99,6 +100,7 @@ class MTGDeck(Soupe):
     @property
     def mainboard(self) -> list:
         """Propriété qui retourne le mainboard."""
+
         if len(self.data["mainboard"]) == 0:
             if "Sideboard" not in self.decklist:
                 self.data["mainboard"] = [
@@ -125,21 +127,25 @@ class MTGDeck(Soupe):
     @property
     def rank(self) -> str:
         """Propriété pour gérer le rang du deck dans le tournoi."""
+
         return self.data["rank"]
 
     @rank.setter
     def rank(self, value: str) -> None:
         """Setter pour le rang du deck."""
+
         self.data["rank"] = value  # int impossible car rang "5-8" par exemple
 
     @property
     def player(self) -> str:
         """Propriété pour gérer le joueur du deck."""
+
         return self.data["player"]
 
     @player.setter
     def player(self, value: str) -> None:
         """Setter pour le joueur du deck."""
+
         self.data["player"] = value
 
 
@@ -161,6 +167,7 @@ class MTGTournoi(Soupe):
     @property
     def to_dict(self) -> dict:
         """Fonction qui permet d'exporter l'objet Tournoi en dictionnaire."""
+
         return {
             "format": "Duel Commander",
             "id": self.tournoi_id,
@@ -175,6 +182,7 @@ class MTGTournoi(Soupe):
     @property
     def is_commander(self) -> bool:
         """Propriété qui vérifie que la soupe contient un tournoi en Duel Commander."""
+
         if self._is_commander is None:
             tag = self.soup.find("div", class_="meta_arch")
             self._is_commander = tag is not None and "Duel Commander" in tag.text
@@ -183,6 +191,7 @@ class MTGTournoi(Soupe):
     @property
     def name(self) -> str:
         """Propriété qui retourne le nom de l'événement."""
+
         if self.data["name"] == "":
             self._set_name_place()
         return self.data["name"]
@@ -190,6 +199,7 @@ class MTGTournoi(Soupe):
     @property
     def place(self) -> str:
         """Propriété qui retour le lieu de l'événement."""
+
         # Le lieu n'est pas toujours indiqué mais le nom l'est toujours
         if self.data["place"] == "" and self.data["players"] == 0:
             self._set_name_place()
@@ -198,6 +208,7 @@ class MTGTournoi(Soupe):
     @property
     def players(self) -> str:
         """Propriété qui retourne le nombre de joueurs."""
+
         if self.data["players"] == 0:
             self._set_players_date()
         return self.data["players"]
@@ -205,6 +216,7 @@ class MTGTournoi(Soupe):
     @property
     def date(self) -> str:
         """Propriété qui retourne la date de l'événement."""
+
         if self.data["date"] == datetime(1993, 8, 5):
             self._set_players_date()
         return self.data["date"]
@@ -212,6 +224,7 @@ class MTGTournoi(Soupe):
     @property
     def decks(self) -> list[MTGDeck]:
         """Propriété qui retourne la liste des decks de la page."""
+
         top8_decks = [
             (tag, "top8") for tag in self.soup.select("div.S14 a[href^='?e=']")
         ]
@@ -250,7 +263,7 @@ class MTGTournoi(Soupe):
         threads = [
             Thread(
                 target=get_deck_info,
-                args=(item[0], item[1], Lock()),
+                args=(item[0], item[1], threading.Lock()),
             )
             for item in decks_to_crawl
         ]
@@ -268,6 +281,7 @@ class MTGTournoi(Soupe):
 
     def _set_name_place(self) -> None:
         """Fonction qui récupère le nom et le lieu depuis la soupe."""
+
         tag = self.soup.find("div", class_="event_title")
         if tag is not None:
             if "@" not in tag.text:
@@ -279,6 +293,7 @@ class MTGTournoi(Soupe):
 
     def _set_players_date(self) -> None:
         """fonction qui récupère le nombre de joueurs et la date depuis la soupe."""
+
         div_meta_arch = self.soup.find("div", class_="meta_arch")
         if div_meta_arch:
             tags = div_meta_arch.parent.find_all("div")
@@ -302,6 +317,7 @@ class MTGTournoi(Soupe):
 
 def last_tournament_scrapped():
     """Retourne le dernier id de tournoi scrappé."""
+
     session = init_database()
 
     tournaments = session.query(Tournois).all()
