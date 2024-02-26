@@ -208,7 +208,6 @@ class DisplayMtgTop8(ttk.Labelframe):
         tournois = session.query(Tournois).order_by(Tournois.id.desc()).limit(100).all()
         for tournoi in reversed(tournois):
             self.display_tournament(tournoi)
-            #time.sleep(0.01)
 
     def insert_last_tournament(self):
         """Insertion du dernier tournoi scrappé."""
