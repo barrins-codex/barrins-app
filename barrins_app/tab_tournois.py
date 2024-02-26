@@ -1,5 +1,6 @@
 """Onglet pour l'extraction et l'affichage des tournois depuis mtgtop8."""
 
+import threading
 import time
 from tkinter import ttk
 
@@ -101,8 +102,8 @@ class ExtractMtgTop8(ttk.Labelframe):
 
         # Threads de la zone
         self.extract_mtgtop8_thread = Thread(target=self.parent.mtgtop8_extraction)
-        self.init_sets_thread = Thread(target=init_sets)
-        self.init_cards_thread = Thread(target=init_cards)
+        self.init_sets_thread = threading.Thread(target=init_sets)
+        self.init_cards_thread = threading.Thread(target=init_cards)
 
     def start_extraction(self):
         """Action du bouton."""
@@ -110,9 +111,11 @@ class ExtractMtgTop8(ttk.Labelframe):
         self.extract_button.configure(state="disabled")
 
         # Contrôle que les data sont à jour
-        self.extract_button.configure(text="Updating MTG Data")
         self.init_sets_thread.start()
         self.init_cards_thread.start()
+        self.extract_button.configure(text="Updating MTG Data")
+        self.init_sets_thread.join()
+        self.init_cards_thread.join()
         self.extract_button.configure(text="MTG Data Updated")
 
         CARDS.helpers()
@@ -141,7 +144,14 @@ class DisplayMtgTop8(ttk.Labelframe):
     """Affichage des tournois et decks en base de données."""
 
     def __init__(self, parent) -> None:
-        super().__init__(parent, text="Database display")
+        nb_decks = self.get_nb_decks()
+        text = (
+            f"Database display (last 100 out of {nb_decks} tournaments)"
+            if nb_decks > 100
+            else f"Database display (last {nb_decks} tournaments)"
+        )
+
+        super().__init__(parent, text=text)
 
         # Configuration de la grille
         self.grid(
@@ -184,28 +194,35 @@ class DisplayMtgTop8(ttk.Labelframe):
         self.sorting_states[col] = not reverse
         self.tableau.heading(col, command=lambda: self.sort_c(col))
 
+    def get_nb_decks(self):
+        """Nombre de decks en ligne."""
+
+        session = init_database()
+        tournois = session.query(Tournois).order_by(Tournois.id.asc()).all()
+        return len(tournois)
+
     def load_data(self):
         """Récupération des tournois et affichage dans le tableau."""
 
         session = init_database()
-        tournois = session.query(Tournois).order_by(Tournois.id.desc()).all()
-        for tournoi in tournois:
-            self.display_tournament(tournoi, "end")
-            time.sleep(0.1)
+        tournois = session.query(Tournois).order_by(Tournois.id.desc()).limit(100).all()
+        for tournoi in reversed(tournois):
+            self.display_tournament(tournoi)
+            #time.sleep(0.01)
 
     def insert_last_tournament(self):
         """Insertion du dernier tournoi scrappé."""
 
         session = init_database()
         tournoi = session.query(Tournois).order_by(Tournois.date.desc()).first()
-        self.display_tournament(tournoi, 0)
+        self.display_tournament(tournoi)
 
-    def display_tournament(self, tournoi: Tournois, position="end"):
+    def display_tournament(self, tournoi: Tournois):
         """Affichage du tournoi et des decks liés."""
 
         self.tableau.insert(
             "",
-            position,
+            0,
             values=(tournoi.name, tournoi.date, tournoi.players),
             iid=tournoi.id,
             tags=(tournoi.id,),
