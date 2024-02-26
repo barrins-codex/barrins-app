@@ -1,7 +1,6 @@
 """Onglet pour l'extraction et l'affichage des tournois depuis mtgtop8."""
 
 import threading
-import time
 from tkinter import ttk
 
 from cls_thread import DaemonThread as Thread
@@ -38,9 +37,9 @@ class TournoisTab(ttk.Frame):
 
         selected_tab = event.widget.select()
         tab_name = event.widget.tab(selected_tab, "text")
-        if tab_name == "Tournois":
-            self.unbind("<<NotebookTabChanged>>")
+        if tab_name == "Tournois" and self.thread_load_data:
             self.thread_load_data.start()
+            self.thread_load_data = None
 
     def on_closing(self):
         """Méthode appelée lors de la fermeture de l'application."""
