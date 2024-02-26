@@ -1,4 +1,4 @@
-"""Onglet pour l'extraction et l'affichage des tournois depuis MTGTOPO8."""
+"""Onglet pour l'extraction et l'affichage des tournois depuis mtgtop8."""
 
 import time
 from tkinter import ttk
@@ -66,7 +66,7 @@ class ExtractMtgTop8(ttk.Labelframe):
     """Scrapping de MTGTOP8."""
 
     def __init__(self, parent):
-        super().__init__(parent, text="Données MTGTOP8")
+        super().__init__(parent, text="MTGTOP8 data")
         self.parent = parent
 
         # Configuration de la grille
@@ -141,7 +141,7 @@ class DisplayMtgTop8(ttk.Labelframe):
     """Affichage des tournois et decks en base de données."""
 
     def __init__(self, parent) -> None:
-        super().__init__(parent, text="Decks en base de données")
+        super().__init__(parent, text="Database display")
 
         # Configuration de la grille
         self.grid(
@@ -182,7 +182,7 @@ class DisplayMtgTop8(ttk.Labelframe):
             self.tableau.move(k, "", index)
 
         self.sorting_states[col] = not reverse
-        self.tableau.heading(col, command=lambda: self.sort_column(col))
+        self.tableau.heading(col, command=lambda: self.sort_c(col))
 
     def load_data(self):
         """Récupération des tournois et affichage dans le tableau."""
@@ -190,22 +190,22 @@ class DisplayMtgTop8(ttk.Labelframe):
         session = init_database()
         tournois = session.query(Tournois).order_by(Tournois.id.desc()).all()
         for tournoi in tournois:
-            self.display_tournament(tournoi)
-            time.sleep(0.2)
+            self.display_tournament(tournoi, "end")
+            time.sleep(0.1)
 
     def insert_last_tournament(self):
         """Insertion du dernier tournoi scrappé."""
 
         session = init_database()
         tournoi = session.query(Tournois).order_by(Tournois.date.desc()).first()
-        self.display_tournament(tournoi)
+        self.display_tournament(tournoi, 0)
 
-    def display_tournament(self, tournoi: Tournois):
+    def display_tournament(self, tournoi: Tournois, position="end"):
         """Affichage du tournoi et des decks liés."""
 
         self.tableau.insert(
             "",
-            "end",
+            position,
             values=(tournoi.name, tournoi.date, tournoi.players),
             iid=tournoi.id,
             tags=(tournoi.id,),
